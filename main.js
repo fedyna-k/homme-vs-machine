@@ -12,7 +12,7 @@
 
 // 1 => IA // 2 => PvP
 
-const nbDeJoueurs = 2;
+const nbDeJoueurs = 1;
 const iaTurn = Math.floor(Math.random() * 2);
 
 
@@ -174,18 +174,6 @@ function drawBoard() {
     // Get valid moves
     let valid = validMoves();
 
-    // If none, one player won // DEACTIVATE WHILE DEBUGGING
-    /*
-    if (!valid.length) {
-        noLoop();
-        if (turn) {
-            console.log("VICTOIRE DES BLANCS");
-        } else {
-            console.log("VICTOIRE DES NOIRS");
-        }
-    }
-    */
-
     // display board
     for (let i = 0 ; i < 10 ; i++) {
         for (let j = 0 ; j < 10 ; j++) {
@@ -229,6 +217,34 @@ function drawBoard() {
                 k++;
             }
         }
+    }
+
+    if (!valid.length) {
+        let toBlit;
+        if (turn) {
+            toBlit = "Victoire des\nBlancs";
+            if (nbDeJoueurs === 1 && turn !== iaTurn) {
+                toBlit += " (IA)";
+            } else {
+                toBlit += " (Joueur)";
+            }
+        } else {
+            toBlit = "Victoire des\nNoirs";
+            if (nbDeJoueurs === 1 && turn !== iaTurn) {
+                toBlit += " (IA)";
+            } else {
+                toBlit += " (Joueur)";
+            }
+        }
+        push();
+        fill(CheckersColors[2]);
+        stroke(0);
+        strokeWeight(3);
+        rectMode(CENTER);
+        textSize(SCALE*(2/3));
+        textAlign(CENTER, CENTER);
+        text(toBlit, SCALE*5, SCALE*5);
+        pop();
     }
 }
 
