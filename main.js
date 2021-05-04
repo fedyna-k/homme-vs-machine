@@ -10,9 +10,9 @@
 
 //------------------------------------------------------------ Constantes
 
-// 1 => IA // 2 => PvP
+// 0 => IAvIA // 1 => PvIA // 2 => PvP
 
-const nbDeJoueurs = 1;
+const nbDeJoueurs = 0;
 const iaTurn = Math.floor(Math.random() * 2);
 
 
@@ -157,6 +157,9 @@ function setup() {
 
 function draw() {
     if (nbDeJoueurs === 1 && turn === iaTurn) {
+        ia()
+    }
+    if (nbDeJoueurs === 0) {
         ia()
     }
 
@@ -582,7 +585,9 @@ function movePiece(piece, start, target, emulate = false) {
         }
         piecesToBeEaten = [];
         pieceEating = -1;
-        turn = 1 - turn;
+        if(!emulate) {
+            turn = 1 - turn;
+        }
     }
 }
 
