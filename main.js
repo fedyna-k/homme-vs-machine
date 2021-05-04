@@ -193,7 +193,7 @@ function drawBoard() {
             rect(j * SCALE, i * SCALE, SCALE, SCALE);
 
             // display possible moves when a piece is picked
-            if (inside(valid, oldPosition | (k << 6)) && (i+j) % 2) {
+            if (nbDeJoueurs > 0 && inside(valid, oldPosition | (k << 6)) && (i+j) % 2) {
                 push();
                 noFill();
                 strokeWeight(5);
