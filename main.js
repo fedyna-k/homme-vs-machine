@@ -133,6 +133,7 @@ function precomputeData() {
 
 var turn = 0; // White to move
 var isHolding = 0;
+var pieceEating = -1;
 var oldPosition;
 var mostRecentMove = -1;
 var piecesToBeEaten = [];
@@ -173,7 +174,8 @@ function drawBoard() {
     // Get valid moves
     let valid = validMoves();
 
-    // If none, one player won
+    // If none, one player won // DEACTIVATE WHILE DEBUGGING
+    /*
     if (!valid.length) {
         noLoop();
         if (turn) {
@@ -182,6 +184,7 @@ function drawBoard() {
             console.log("VICTOIRE DES NOIRS");
         }
     }
+    */
 
     // display board
     for (let i = 0 ; i < 10 ; i++) {
@@ -284,6 +287,59 @@ function mouseReleased() {
     oldPosition = -1;
 }
 
+//------------------------------------------------------------ DEBUGGING functions
+
+/**
+ *  Change state of board
+ *  LEFT ARROW => put black material
+ *  RIGHT ARROW => put white material
+ *  UP ARROW => Queen/no queen
+ * 
+ *  DEL => REMOVE EVERYTHING FROM BOARD
+ *  BACKSPACE => REMOVE THE PIECE
+ * 
+ *  T => CHANGE TURN
+ * 
+ */
+
+function keyPressed() {
+    let mx = normalize(mouseX);
+    let my = normalize(mouseY);
+    let index = clickToIndex(mx, my);
+
+    if (keyCode == 84) {
+        turn = 1 - turn;
+    }
+    else if (keyCode == DELETE) {
+        board = Array(50).fill(0);
+        whitePieces = [];
+        blackPieces = [];
+    }
+    else if (valid(mx) && valid(my) && index !== null)
+    {
+        if (keyCode == LEFT_ARROW) {
+            board[index] = Pieces.black;
+            remove(whitePieces, index);
+            remove(blackPieces, index);
+            blackPieces.push(index);
+        }
+        if (keyCode == RIGHT_ARROW) {
+            board[index] = Pieces.white;
+            remove(whitePieces, index);
+            remove(blackPieces, index);
+            whitePieces.push(index);
+        }
+        if (keyCode == UP_ARROW && board[index]) {
+            board[index] ^= Pieces.queen;
+        }
+        if (keyCode == BACKSPACE && board[index]) {
+            board[index] = 0;
+            remove(whitePieces, index);
+            remove(blackPieces, index);
+        }
+    }
+}
+
 //------------------------------------------------------------ Game functions
 
 // Calculate nth move in a direction
@@ -302,6 +358,9 @@ function validMoves(inMultiple = false) {
     let eatingMoves = [];
     // quick check of moves
     for (let i = 0 ; i < positions.length ; i++) {
+        if (pieceEating !== -1 && positions[i] !== pieceEating) {
+            continue;
+        }
         for (let j = 0 ; j < 4 ; j++) {
             
             // Look in all directions toward number of squares available
@@ -379,6 +438,7 @@ function multipleEating(moves, first=true) {
     let blackSave = [...blackPieces];
     let turnSave = turn;
     let piecesToBeEatenSave = [...piecesToBeEaten];
+    let pieceEatingSave = pieceEating;
 
     // loop through eating moves
     for (let i = 0 ; i < moves.length ; i++) {
@@ -398,6 +458,7 @@ function multipleEating(moves, first=true) {
         blackPieces = [...blackSave];
         turn = turnSave;
         piecesToBeEaten = [...piecesToBeEatenSave];
+        pieceEating = pieceEatingSave;
     }
 
     // return depend on from where you arrived
@@ -453,6 +514,7 @@ function movePiece(piece, start, target, emulate = false) {
             // add piece to the to-be-eaten ones
             piecesToBeEaten.push(intersect(SquaresBetween[start][target], whitePieces)[0]);
             hasEaten = true;
+            pieceEating = target;
         }
         for (let i = 0 ; i < blackPieces.length ; i++) {
             if (blackPieces[i] == start) {
@@ -465,6 +527,7 @@ function movePiece(piece, start, target, emulate = false) {
             // add piece to the to-be-eaten ones
             piecesToBeEaten.push(intersect(SquaresBetween[start][target], blackPieces)[0]);
             hasEaten = true;
+            pieceEating = target;
         }
         for (let i = 0 ; i < whitePieces.length ; i++) {
             if (whitePieces[i] == start) {
@@ -502,6 +565,7 @@ function movePiece(piece, start, target, emulate = false) {
             }
         }
         piecesToBeEaten = [];
+        pieceEating = -1;
         turn = 1 - turn;
     }
 }
@@ -515,6 +579,8 @@ const ia = pickRandom;
 function pickRandom() {
     // Simple "AI" that picks a random possible move, not a good player tbh
     let valid = validMoves();
-    let randomMove = valid[Math.floor(Math.random() * valid.length)];
-    movePiece(board[randomMove & 63], randomMove & 63, randomMove >> 6);
+    if (valid.length) { // avoid creating a piece and making a phantom move
+        let randomMove = valid[Math.floor(Math.random() * valid.length)];
+        movePiece(board[randomMove & 63], randomMove & 63, randomMove >> 6);
+    }
 }
