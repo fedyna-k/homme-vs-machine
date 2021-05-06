@@ -643,7 +643,7 @@ function movePiece(piece, start, target, emulate = false) {
         }
         piecesToBeEaten = [];
         pieceEating = -1;
-        if(!emulate) {
+        if (!emulate) {
             turn = 1 - turn;
         }
     }
