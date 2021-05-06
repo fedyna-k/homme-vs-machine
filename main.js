@@ -12,13 +12,13 @@
 
 // 0 => IAvIA // 1 => PvIA // 2 => PvP
 
-const nbDeJoueurs = 0;
+const nbDeJoueurs = 2;
 const iaTurn = Math.floor(Math.random() * 2);
 
 
 // Plateau
-const BoardColors = ["#FFF", "#000", "#ffb703"]; // White & Black & Gray
-const CheckersColors = ["#F00", "#00F", "#ffb703"]; // Red & Blue & Gold
+const BoardColors = ["#f3dab2", "#bd875e", "#6a994e", "#4361ee", "hotpink", "rgb(100, 141, 50)"]; // dark // light // mostrecent // canbemoved // valid
+const CheckersColors = ["#EEE", "#000", "#ffb703"]; // white // black // crown
 const SCALE = Math.floor(window.innerHeight / 10); // adapt scale to window
 
 // Pieces
@@ -131,12 +131,17 @@ function precomputeData() {
 
 //------------------------------------------------------------ Variables de Jeu
 
+var wins = [0,0];
+
 var turn = 0; // White to move
 var isHolding = 0;
 var pieceEating = -1;
 var oldPosition;
 var mostRecentMove = -1;
 var piecesToBeEaten = [];
+
+var isDrawing = -1;
+var arrows = [];
 
 // Board with beginning position
 var board = [
@@ -153,20 +158,28 @@ var whitePieces = [30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49];
 
 function setup() {
     createCanvas(SCALE * 10, SCALE * 10);
+    for (let element of document.getElementsByClassName("p5Canvas")) {
+        element.addEventListener("contextmenu", (e) => e.preventDefault());
+    }
 }
 
 function draw() {
     if (nbDeJoueurs === 1 && turn === iaTurn) {
-        ia()
+        ia();
     }
     if (nbDeJoueurs === 0) {
-        ia()
+        for(let i = 0 ; i < 500 ; i++) {
+        ia();
+        }
     }
 
+    
     drawBoard();
+    drawArrows();
     if (isHolding) {
         drawPiece(mouseX, mouseY, isHolding);
     }
+
 }
 
 //------------------------------------------------------------ Draw functions
@@ -176,6 +189,8 @@ function drawBoard() {
     
     // Get valid moves
     let valid = validMoves();
+
+    noStroke();
 
     // display board
     for (let i = 0 ; i < 10 ; i++) {
@@ -195,9 +210,8 @@ function drawBoard() {
             // display possible moves when a piece is picked
             if (nbDeJoueurs > 0 && inside(valid, oldPosition | (k << 6)) && (i+j) % 2) {
                 push();
-                noFill();
-                strokeWeight(5);
-                stroke("hotpink");
+                strokeWeight(SCALE/8);
+                stroke(BoardColors[4]);
                 ellipse(j*SCALE + SCALE/2, i*SCALE + SCALE/2, SCALE*0.75);
                 pop();
             }
@@ -205,9 +219,8 @@ function drawBoard() {
             // display pieces that can move if not in hand
             if (inside(valid.map(x => x & 63), k) && (i+j) % 2 && k !== oldPosition) {
                 push();
-                noFill();
-                strokeWeight(5);
-                stroke("white");
+                strokeWeight(SCALE/8);
+                stroke(BoardColors[3]);
                 ellipse(j*SCALE + SCALE/2, i*SCALE + SCALE/2, SCALE*0.75);
                 pop();
             }
@@ -251,6 +264,31 @@ function drawBoard() {
     }
 }
 
+function drawArrows() {
+    for (let i = 0 ; i < arrows.length ; i++) {
+        if (JSON.stringify(arrows[i][0]) == JSON.stringify(arrows[i][1])) {
+            noFill();
+            stroke(BoardColors[5]);
+            strokeWeight(SCALE/8);
+            ellipse(arrows[i][0][0]*SCALE + SCALE/2, arrows[i][0][1]*SCALE + SCALE/2, SCALE*0.75);
+        } else {
+            noFill();
+            stroke(BoardColors[5]);
+            strokeWeight(SCALE/4);
+            line(arrows[i][0][0]*SCALE + SCALE/2, arrows[i][0][1]*SCALE + SCALE/2, arrows[i][1][0]*SCALE + SCALE/2, arrows[i][1][1]*SCALE + SCALE/2);
+            
+            let vector = [arrows[i][1][0] - arrows[i][0][0], arrows[i][1][1] - arrows[i][0][1]];
+            let normalised = [SCALE/3 * vector[0] / (vector[0]**2 + vector[1]**2)**0.5, SCALE/3 * vector[1] / (vector[0]**2 + vector[1]**2)**0.5]
+
+            noStroke();
+            fill(BoardColors[5]);
+            let x = arrows[i][1][0]*SCALE + SCALE/2;
+            let y = arrows[i][1][1]*SCALE + SCALE/2
+            triangle(x + normalised[0], y + normalised[1], x - normalised[1], y + normalised[0], x + normalised[1], y - normalised[0]);
+        }
+    }
+}
+
 function drawPiece(x, y, piece) {
     // Draw regular one
     fill(CheckersColors[piece & 1]);
@@ -276,15 +314,24 @@ function drawPiece(x, y, piece) {
 //------------------------------------------------------------ Drag and drop function
 
 function mousePressed() {
+
+    if (mouseButton === LEFT) {
+        arrows = [];
+    }
+
     // normalize coordinates
     let mx = normalize(mouseX);
     let my = normalize(mouseY);
     if (valid(mx) && valid(my)) { // && !turn) {
         // pick piece
         let index = clickToIndex(mx, my);
-        if (index !== null && board[index] % 2 === turn) {
-            isHolding = board[index];
-            oldPosition = index;
+        if (index !== null) {
+            if (mouseButton === LEFT && board[index] % 2 === turn) {
+                isHolding = board[index];
+                oldPosition = index;
+            } else if (mouseButton === RIGHT) {
+                isDrawing = [mx, my];
+            }
         }
     }
 }
@@ -294,6 +341,17 @@ function mouseReleased() {
     let mx = normalize(mouseX);
     let my = normalize(mouseY);
     let index = clickToIndex(mx, my);
+
+    if (index !== null && mouseButton === RIGHT) {
+        let arr_index = arrows.map(x => JSON.stringify(x)).indexOf(JSON.stringify([isDrawing, [mx, my]]));
+        if (arr_index !== -1) {
+            arrows.splice(arr_index, 1);
+        } else {
+            arrows.push([isDrawing, [mx, my]]);
+        }
+        isDrawing = -1;
+        return;
+    }
 
     // drop piece on position chosen if valid, else get put back to old place
     if (isHolding && valid(mx) && valid(my) && inside(validMoves(), oldPosition | (index << 6))) {
